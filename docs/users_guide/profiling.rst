@@ -1368,7 +1368,7 @@ Heap profiler event log output
 ------------------------------
 
 The heap profiler can produce output to GHC's event log, allowing samples to
-be correlated with other events over the program's lifecycle.
+be correlated with other event log events over the program's lifecycle.
 
 This section defines the layout of these events. The ``String`` type below is
 defined to be a UTF-8 encoded NUL-terminated string.
@@ -1407,7 +1407,8 @@ A variable-length packet produced once for each cost center,
    * ``String``: label
    * ``String``: module
    * ``String``: source location
-   * ``Word8``: is a CAF?
+   * ``Word8``: flags
+     * bit 0: is the cost-center a CAF?
 
 
 Sample event types
