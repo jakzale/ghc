@@ -21,6 +21,13 @@ import FastString
 import Outputable
 import Unique
 
+import CoreSyn ( Tickish(SourceNote) )
+import Debug
+import Compiler.Hoopl ( LabelMap, IsMap(..) )
+
+
+import Data.Maybe ( maybeToList )
+
 
 -- ----------------------------------------------------------------------------
 -- * Top level
@@ -95,12 +102,17 @@ pprLlvmData (globals, types) =
     in types' $+$ globals'
 
 
+locationMetadata :: CmmTickish -> Maybe MetaAnnot
+locationMetadata (SourceNote _span _name) = Nothing
+locationMetadata _ = Nothing
+
+
 -- | Pretty print LLVM code
-pprLlvmCmmDecl :: LlvmCmmDecl -> LlvmM (SDoc, [LlvmVar])
-pprLlvmCmmDecl (CmmData _ lmdata)
+pprLlvmCmmDecl :: LabelMap DebugBlock -> LlvmCmmDecl -> LlvmM (SDoc, [LlvmVar])
+pprLlvmCmmDecl _ (CmmData _ lmdata)
   = return (vcat $ map pprLlvmData lmdata, [])
 
-pprLlvmCmmDecl (CmmProc mb_info entry_lbl live (ListGraph blks))
+pprLlvmCmmDecl debug_map (CmmProc (label, mb_info) entry_lbl live (ListGraph blks))
   = do let lbl = case mb_info of
                      Nothing                   -> entry_lbl
                      Just (Statics info_lbl _) -> info_lbl
@@ -125,8 +137,13 @@ pprLlvmCmmDecl (CmmProc mb_info entry_lbl live (ListGraph blks))
                        return $ Just $ LMStaticStruc infoStatics infoTy
 
 
+       let metas = maybeToList $ do
+               dbg_blk <- mapLookup label debug_map
+               src_tick <- dblSourceTick dbg_blk
+               locationMetadata src_tick
+
        let fun = LlvmFunction funDec funArgs llvmStdFunAttrs funSect
-                              prefix [] lmblocks
+                              prefix metas lmblocks
            name = decName $ funcDecl fun
            defName = name `appendFS` fsLit "$def"
            funcDecl' = (funcDecl fun) { decName = defName }

@@ -56,13 +56,14 @@ import UniqSupply
 import ErrUtils
 import qualified Stream
 
+import Compiler.Hoopl   ( Label )
 import Control.Monad (ap)
 
 -- ----------------------------------------------------------------------------
 -- * Some Data Types
 --
 
-type LlvmCmmDecl = GenCmmDecl [LlvmData] (Maybe CmmStatics) (ListGraph LlvmStatement)
+type LlvmCmmDecl = GenCmmDecl [LlvmData] (Label, Maybe CmmStatics) (ListGraph LlvmStatement)
 type LlvmBasicBlock = GenBasicBlock LlvmStatement
 
 -- | Global registers live on proc entry

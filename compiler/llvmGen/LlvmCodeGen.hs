@@ -20,6 +20,8 @@ import CgUtils ( fixStgRegisters )
 import Cmm
 import CmmUtils
 import Hoopl
+import Module
+import Debug ( DebugBlock, debugToMap, cmmDebugGen )
 import PprCmm
 
 import BufWrite
@@ -38,10 +40,10 @@ import System.IO
 -- -----------------------------------------------------------------------------
 -- | Top-level of the LLVM Code generator
 --
-llvmCodeGen :: DynFlags -> Handle -> UniqSupply
+llvmCodeGen :: DynFlags -> ModLocation -> Handle -> UniqSupply
                -> Stream.Stream IO RawCmmGroup ()
                -> IO ()
-llvmCodeGen dflags h us cmm_stream
+llvmCodeGen dflags location h us cmm_stream
   = withTiming (pure dflags) (text "LLVM CodeGen") (const ()) $ do
        bufh <- newBufHandle h
 
@@ -64,19 +66,19 @@ llvmCodeGen dflags h us cmm_stream
 
        -- run code generation
        runLlvm dflags ver bufh us $
-         llvmCodeGen' (liftStream cmm_stream)
+         llvmCodeGen' location (liftStream cmm_stream)
 
        bFlush bufh
 
-llvmCodeGen' :: Stream.Stream LlvmM RawCmmGroup () -> LlvmM ()
-llvmCodeGen' cmm_stream
+llvmCodeGen' :: ModLocation -> Stream.Stream LlvmM RawCmmGroup () -> LlvmM ()
+llvmCodeGen' location cmm_stream
   = do  -- Preamble
         renderLlvm pprLlvmHeader
         ghcInternalFunctions
         cmmMetaLlvmPrelude
 
         -- Procedures
-        let llvmStream = Stream.mapM llvmGroupLlvmGens cmm_stream
+        let llvmStream = Stream.mapM (llvmGroupLlvmGens location) cmm_stream
         _ <- Stream.collect llvmStream
 
         -- Declare aliases for forward references
@@ -85,8 +87,14 @@ llvmCodeGen' cmm_stream
         -- Postamble
         cmmUsedLlvmGens
 
-llvmGroupLlvmGens :: RawCmmGroup -> LlvmM ()
-llvmGroupLlvmGens cmm = do
+llvmGroupLlvmGens :: ModLocation -> RawCmmGroup -> LlvmM ()
+llvmGroupLlvmGens location cmm = do
+
+        dbg_lvl <- debugLevel <$> getDynFlags
+        let debug_map :: LabelMap DebugBlock
+            debug_map
+              | dbg_lvl >= 1 = debugToMap $ cmmDebugGen location cmm
+              | otherwise    = mapEmpty
 
         -- Insert functions into map, collect data
         let split (CmmData s d' )     = return $ Just (s, d')
@@ -103,7 +111,7 @@ llvmGroupLlvmGens cmm = do
         {-# SCC "llvm_datas_gen" #-}
           cmmDataLlvmGens cdata
         {-# SCC "llvm_procs_gen" #-}
-          mapM_ cmmLlvmGen cmm
+          mapM_ (cmmLlvmGen debug_map) cmm
 
 -- -----------------------------------------------------------------------------
 -- | Do LLVM code generation on all these Cmms data sections.
@@ -153,8 +161,8 @@ fixBottom cp@(CmmProc hdr entry_lbl live g) =
 fixBottom rcd = pure rcd
 
 -- | Complete LLVM code generation phase for a single top-level chunk of Cmm.
-cmmLlvmGen ::RawCmmDecl -> LlvmM ()
-cmmLlvmGen cmm@CmmProc{} = do
+cmmLlvmGen :: LabelMap DebugBlock -> RawCmmDecl -> LlvmM ()
+cmmLlvmGen debug_map cmm@CmmProc{} = do
 
     -- rewrite assignments to global regs
     dflags <- getDynFlag id
@@ -168,13 +176,13 @@ cmmLlvmGen cmm@CmmProc{} = do
     llvmBC <- withClearVars $ genLlvmProc fixed_cmm
 
     -- pretty print
-    (docs, ivars) <- fmap unzip $ mapM pprLlvmCmmDecl llvmBC
+    (docs, ivars) <- fmap unzip $ mapM (pprLlvmCmmDecl debug_map) llvmBC
 
     -- Output, note down used variables
     renderLlvm (vcat docs)
     mapM_ markUsedVar $ concat ivars
 
-cmmLlvmGen _ = return ()
+cmmLlvmGen _ _ = return ()
 
 -- -----------------------------------------------------------------------------
 -- | Generate meta data nodes
