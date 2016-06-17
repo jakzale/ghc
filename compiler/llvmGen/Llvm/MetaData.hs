@@ -1,8 +1,10 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Llvm.MetaData where
 
 import Llvm.Types
+import FastString
 import Outputable
 
 -- The LLVM Metadata System.
@@ -69,6 +71,12 @@ data MetaExpr = MetaStr LMString
               | MetaNode MetaId
               | MetaVar LlvmVar
               | MetaStruct [MetaExpr]
+              | MetaDICompileUnit { dicuLanguage    :: !FastString
+                                  , dicuFile        :: !MetaId
+                                  , dicuProducer    :: !FastString
+                                  , dicuIsOptimized :: !Bool
+                                  , dicuSubprograms :: !MetaId
+                                  }
               deriving (Eq)
 
 instance Outputable MetaExpr where
@@ -76,6 +84,17 @@ instance Outputable MetaExpr where
   ppr (MetaNode   n ) = ppr n
   ppr (MetaVar    v ) = ppr v
   ppr (MetaStruct es) = text "!{ " <> ppCommaJoin es <> char '}'
+  ppr (MetaDICompileUnit {..}) =
+      text "!DICompileUnit"
+      <> parens (hcat $ punctuate (comma <> space) $ map (\(k,v) -> k <> equals <> v)
+                 [ (text "language"   , ftext dicuLanguage)
+                 , (text "file"       , ppr dicuFile)
+                 , (text "producer"   , ftext dicuProducer)
+                 , (text "isOptimized", if dicuIsOptimized
+                                        then text "true"
+                                        else text "false")
+                 , (text "subprograms", ppr dicuSubprograms)
+                 ])
 
 -- | Associates some metadata with a specific label for attaching to an
 -- instruction.
