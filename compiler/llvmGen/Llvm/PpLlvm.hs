@@ -140,7 +140,7 @@ ppLlvmFunction fun =
                         Just v  -> text "prefix" <+> ppr v
                         Nothing -> empty
     in text "define" <+> ppLlvmFunctionHeader (funcDecl fun) (funcArgs fun)
-        <+> attrDoc <+> secDoc <+> prefixDoc
+        <+> attrDoc <+> secDoc <+> prefixDoc <+> ppMetaAnnots (funcMetadata fun)
         $+$ lbrace
         $+$ ppLlvmBlocks (funcBody fun)
         $+$ rbrace
