@@ -71,6 +71,9 @@ data MetaExpr = MetaStr LMString
               | MetaNode MetaId
               | MetaVar LlvmVar
               | MetaStruct [MetaExpr]
+              | MetaDIFile { difFilename  :: !String
+                           , difDirectory :: !String
+                           }
               | MetaDICompileUnit { dicuLanguage    :: !FastString
                                   , dicuFile        :: !MetaId
                                   , dicuProducer    :: !FastString
@@ -85,12 +88,18 @@ instance Outputable MetaExpr where
   ppr (MetaNode   n ) = ppr n
   ppr (MetaVar    v ) = ppr v
   ppr (MetaStruct es) = char '!' <+> braces (ppCommaJoin es)
+  ppr (MetaDIFile {..}) =
+      text "!DIFile"
+      <> parens (hsep $ punctuate comma $ map (\(k,v) -> k <> colon <+> v)
+                 [ (text "filename", doubleQuotes $ text difFilename)
+                 , (text "directory", doubleQuotes $ text difDirectory)
+                 ])
   ppr (MetaDICompileUnit {..}) =
       text "!DICompileUnit"
-      <> parens (hcat $ punctuate (comma <> space) $ map (\(k,v) -> k <> equals <> v)
+      <> parens (hsep $ punctuate comma $ map (\(k,v) -> k <> colon <+> v)
                  [ (text "language"   , ftext dicuLanguage)
                  , (text "file"       , ppr dicuFile)
-                 , (text "producer"   , ftext dicuProducer)
+                 , (text "producer"   , doubleQuotes $ ftext dicuProducer)
                  , (text "isOptimized", if dicuIsOptimized
                                         then text "true"
                                         else text "false")
