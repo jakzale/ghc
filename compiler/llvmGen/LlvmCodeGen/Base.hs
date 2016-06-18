@@ -19,7 +19,7 @@ module LlvmCodeGen.Base (
         markStackReg, checkStackReg,
         funLookup, funInsert, getLlvmVer, getDynFlags, getDynFlag, getLlvmPlatform,
         dumpIfSetLlvm, renderLlvm, markUsedVar, getUsedVars,
-        addMetaDecl, getMetaDecls,
+        addMetaDecl, getMetaDecls, addSubprogram, getSubprograms,
         ghcInternalFunctions,
 
         getMetaUniqueId,
@@ -201,6 +201,8 @@ data LlvmEnv = LlvmEnv
   , envAliases :: UniqSet LMString -- ^ Globals that we had to alias, see [Llvm Forward References]
   , envUsedVars :: [LlvmVar]       -- ^ Pointers to be added to llvm.used (see @cmmUsedLlvmGens@)
   , envMetaDecls :: [MetaDecl]     -- ^ Metadata declarations to be included in final output
+  , envSubprograms :: [MetaId]     -- ^ 'MetaId's of the @DISubprogram@ metadata
+                                   -- nodes defined in this @DICompileUnit@.
 
     -- the following get cleared for every function (see @withClearVars@)
   , envVarMap :: LlvmEnvMap        -- ^ Local variables so far, with type
@@ -255,6 +257,7 @@ runLlvm dflags ver out us m = do
                       , envStackRegs = []
                       , envUsedVars = []
                       , envMetaDecls = []
+                      , envSubprograms = []
                       , envAliases = emptyUniqSet
                       , envVersion = ver
                       , envDynFlags = dflags
@@ -363,10 +366,19 @@ getUniqMeta :: Unique -> LlvmM (Maybe MetaId)
 getUniqMeta s = getEnv (flip lookupUFM s . envUniqMeta)
 
 -- | Add a @DISubprogram@ metadata declaration to the current compilation unit.
+addSubprogram :: MetaId -> MetaExpr -> LlvmM ()
+addSubprogram metaId metaExpr = do
+    modifyEnv $ \env -> env { envSubprograms = metaId : envSubprograms env }
+    addMetaDecl (MetaUnnamed metaId metaExpr)
+
+getSubprograms :: LlvmM [MetaId]
+getSubprograms = LlvmM $ \env -> return (envSubprograms env, env { envSubprograms = [] })
+
+-- | Add a metadata declaration to the output.
 addMetaDecl :: MetaDecl -> LlvmM ()
 addMetaDecl x = modifyEnv $ \env -> env { envMetaDecls = x : envMetaDecls env }
 
--- | Retreive the list of @DISubprogram@ metadata declarations found in the
+-- | Retreive the list of metadata declarations found in the
 -- current compilation unit.
 getMetaDecls :: LlvmM [MetaDecl]
 getMetaDecls = LlvmM $ \env -> return (envMetaDecls env, env { envMetaDecls = [] })

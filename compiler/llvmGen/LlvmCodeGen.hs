@@ -95,6 +95,7 @@ llvmCodeGen' location cmm_stream
         dwarfVersionMeta <- getMetaUniqueId
         debugInfoVersionMeta <- getMetaUniqueId
         getMetaDecls >>= renderLlvm . ppLlvmMetas
+        subprograms <- getSubprograms
         renderLlvm $ ppLlvmMetas
             [ MetaUnnamed fileMeta $ MetaDIFile
               { difFilename     = fsLit $ fromMaybe "TODO" (ml_hs_file location)
@@ -105,7 +106,7 @@ llvmCodeGen' location cmm_stream
               , dicuFile        = fileMeta
               , dicuProducer    = fsLit "ghc"
               , dicuIsOptimized = optLevel dflags > 0
-              , dicuSubprograms = MetaStruct []
+              , dicuSubprograms = MetaStruct $ map MetaNode subprograms
               }
             , MetaNamed (fsLit "llvm.dbg.cu") [ cuMeta ]
             , MetaUnnamed subprogramsMeta $ MetaStruct []
