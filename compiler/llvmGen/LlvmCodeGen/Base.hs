@@ -19,6 +19,7 @@ module LlvmCodeGen.Base (
         markStackReg, checkStackReg,
         funLookup, funInsert, getLlvmVer, getDynFlags, getDynFlag, getLlvmPlatform,
         dumpIfSetLlvm, renderLlvm, markUsedVar, getUsedVars,
+        addMetaDecl, getMetaDecls,
         ghcInternalFunctions,
 
         getMetaUniqueId,
@@ -199,6 +200,7 @@ data LlvmEnv = LlvmEnv
   , envFunMap :: LlvmEnvMap        -- ^ Global functions so far, with type
   , envAliases :: UniqSet LMString -- ^ Globals that we had to alias, see [Llvm Forward References]
   , envUsedVars :: [LlvmVar]       -- ^ Pointers to be added to llvm.used (see @cmmUsedLlvmGens@)
+  , envMetaDecls :: [MetaDecl]     -- ^ Metadata declarations to be included in final output
 
     -- the following get cleared for every function (see @withClearVars@)
   , envVarMap :: LlvmEnvMap        -- ^ Local variables so far, with type
@@ -252,6 +254,7 @@ runLlvm dflags ver out us m = do
                       , envVarMap = emptyUFM
                       , envStackRegs = []
                       , envUsedVars = []
+                      , envMetaDecls = []
                       , envAliases = emptyUniqSet
                       , envVersion = ver
                       , envDynFlags = dflags
@@ -358,6 +361,15 @@ setUniqMeta f m = modifyEnv $ \env -> env { envUniqMeta = addToUFM (envUniqMeta 
 -- | Gets metadata node for given unique
 getUniqMeta :: Unique -> LlvmM (Maybe MetaId)
 getUniqMeta s = getEnv (flip lookupUFM s . envUniqMeta)
+
+-- | Add a @DISubprogram@ metadata declaration to the current compilation unit.
+addMetaDecl :: MetaDecl -> LlvmM ()
+addMetaDecl x = modifyEnv $ \env -> env { envMetaDecls = x : envMetaDecls env }
+
+-- | Retreive the list of @DISubprogram@ metadata declarations found in the
+-- current compilation unit.
+getMetaDecls :: LlvmM [MetaDecl]
+getMetaDecls = LlvmM $ \env -> return (envMetaDecls env, env { envMetaDecls = [] })
 
 -- ----------------------------------------------------------------------------
 -- * Internal functions

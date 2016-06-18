@@ -21,6 +21,7 @@ import FastString
 import Outputable
 import Unique
 
+import SrcLoc
 import CoreSyn ( Tickish(SourceNote) )
 import Debug
 import Compiler.Hoopl ( LabelMap, IsMap(..) )
@@ -102,11 +103,6 @@ pprLlvmData (globals, types) =
     in types' $+$ globals'
 
 
-locationMetadata :: CmmTickish -> Maybe MetaAnnot
-locationMetadata (SourceNote _span _name) = Nothing
-locationMetadata _ = Nothing
-
-
 -- | Pretty print LLVM code
 pprLlvmCmmDecl :: LabelMap DebugBlock -> LlvmCmmDecl -> LlvmM (SDoc, [LlvmVar])
 pprLlvmCmmDecl _ (CmmData _ lmdata)
@@ -137,13 +133,34 @@ pprLlvmCmmDecl debug_map (CmmProc (label, mb_info) entry_lbl live (ListGraph blk
                        return $ Just $ LMStaticStruc infoStatics infoTy
 
 
-       let metas = maybeToList $ do
+       subprogMeta <- getMetaUniqueId
+       fileMeta <- getMetaUniqueId
+       typeMeta <- getMetaUniqueId
+       let typeMetaDef = MetaUnnamed typeMeta $ MetaDISubroutineType [MetaVar $ LMLitVar $ LMNullLit i1]
+       let metaDecls = do
                dbg_blk <- mapLookup label debug_map
-               src_tick <- dblSourceTick dbg_blk
-               locationMetadata src_tick
+               SourceNote span name <- dblSourceTick dbg_blk
+               let fileDef = MetaUnnamed fileMeta
+                             $ MetaDIFile { difFilename = srcSpanFile span
+                                          , difDirectory = fsLit "TODO"
+                                          }
+                   subprogDef =
+                       MetaUnnamed subprogMeta $
+                       MetaDISubprogram { disName         = fsLit name
+                                        , disLinkageName  = fsLit "TODO"
+                                        , disScope        = fileMeta
+                                        , disFile         = fileMeta
+                                        , disLine         = srcSpanStartLine span
+                                        , disType         = typeMeta
+                                        , disIsDefinition = True
+                                        }
+               pure [fileDef, subprogDef, typeMetaDef]
+           funcMetas = maybeToList $ fmap (const $ MetaAnnot (fsLit "dbg") $ MetaNode subprogMeta) metaDecls
+
+       mapM_ (mapM_ addMetaDecl) metaDecls
 
        let fun = LlvmFunction funDec funArgs llvmStdFunAttrs funSect
-                              prefix metas lmblocks
+                              prefix funcMetas lmblocks
            name = decName $ funcDecl fun
            defName = name `appendFS` fsLit "$def"
            funcDecl' = (funcDecl fun) { decName = defName }

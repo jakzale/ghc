@@ -1,5 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Llvm.MetaData where
 
@@ -71,15 +72,24 @@ data MetaExpr = MetaStr LMString
               | MetaNode MetaId
               | MetaVar LlvmVar
               | MetaStruct [MetaExpr]
-              | MetaDIFile { difFilename  :: !String
-                           , difDirectory :: !String
+              | MetaDIFile { difFilename  :: !FastString
+                           , difDirectory :: !FastString
                            }
+              | MetaDISubroutineType { distType     :: ![MetaExpr] }
               | MetaDICompileUnit { dicuLanguage    :: !FastString
                                   , dicuFile        :: !MetaId
                                   , dicuProducer    :: !FastString
                                   , dicuIsOptimized :: !Bool
-                                  , dicuSubprograms :: !MetaId
+                                  , dicuSubprograms :: !MetaExpr
                                   }
+              | MetaDISubprogram { disName          :: !FastString
+                                 , disLinkageName   :: !FastString
+                                 , disScope         :: !MetaId
+                                 , disFile          :: !MetaId
+                                 , disLine          :: !Int
+                                 , disType          :: !MetaId
+                                 , disIsDefinition  :: !Bool
+                                 }
               deriving (Eq)
 
 instance Outputable MetaExpr where
@@ -89,22 +99,41 @@ instance Outputable MetaExpr where
   ppr (MetaVar    v ) = ppr v
   ppr (MetaStruct es) = char '!' <+> braces (ppCommaJoin es)
   ppr (MetaDIFile {..}) =
-      text "!DIFile"
-      <> parens (hsep $ punctuate comma $ map (\(k,v) -> k <> colon <+> v)
-                 [ (text "filename", doubleQuotes $ text difFilename)
-                 , (text "directory", doubleQuotes $ text difDirectory)
-                 ])
+      specialMetadata "DIFile"
+      [ (text "filename" , doubleQuotes $ ftext difFilename)
+      , (text "directory", doubleQuotes $ ftext difDirectory)
+      ]
+  ppr (MetaDISubroutineType {..}) =
+      specialMetadata "DISubroutineType"
+      [ (text "types", ppr $ MetaStruct distType ) ]
   ppr (MetaDICompileUnit {..}) =
-      text "!DICompileUnit"
-      <> parens (hsep $ punctuate comma $ map (\(k,v) -> k <> colon <+> v)
-                 [ (text "language"   , ftext dicuLanguage)
-                 , (text "file"       , ppr dicuFile)
-                 , (text "producer"   , doubleQuotes $ ftext dicuProducer)
-                 , (text "isOptimized", if dicuIsOptimized
-                                        then text "true"
-                                        else text "false")
-                 , (text "subprograms", ppr dicuSubprograms)
-                 ])
+      specialMetadata "DICompileUnit"
+      [ (text "language"   , ftext dicuLanguage)
+      , (text "file"       , ppr dicuFile)
+      , (text "producer"   , doubleQuotes $ ftext dicuProducer)
+      , (text "isOptimized", if dicuIsOptimized
+                            then text "true"
+                            else text "false")
+      , (text "subprograms", ppr dicuSubprograms)
+      ]
+  ppr (MetaDISubprogram {..}) =
+      specialMetadata "DISubprogram"
+      [ ("name"        , doubleQuotes $ ftext disName)
+      , ("linkageName" , doubleQuotes $ ftext disLinkageName)
+      , ("scope"       , ppr disScope)
+      , ("file"        , ppr disFile)
+      , ("line"        , ppr disLine)
+      , ("type"        , ppr disType)
+      , ("isDefinition", if disIsDefinition
+                              then text "true"
+                              else text "false")
+      ]
+
+
+specialMetadata :: SDoc -> [(SDoc, SDoc)] -> SDoc
+specialMetadata nodeName fields =
+    char '!' <> nodeName
+    <> parens (hsep $ punctuate comma $ map (\(k,v) -> k <> colon <+> v) fields)
 
 -- | Associates some metadata with a specific label for attaching to an
 -- instruction.

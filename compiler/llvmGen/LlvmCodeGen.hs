@@ -87,6 +87,45 @@ llvmCodeGen' location cmm_stream
         -- Postamble
         cmmUsedLlvmGens
 
+        -- Debug information
+        dflags <- getDynFlags
+        fileMeta <- getMetaUniqueId
+        subprogramsMeta <- getMetaUniqueId
+        cuMeta <- getMetaUniqueId
+        dwarfVersionMeta <- getMetaUniqueId
+        debugInfoVersionMeta <- getMetaUniqueId
+        getMetaDecls >>= renderLlvm . ppLlvmMetas
+        renderLlvm $ ppLlvmMetas
+            [ MetaUnnamed fileMeta $ MetaDIFile
+              { difFilename     = fsLit $ fromMaybe "TODO" (ml_hs_file location)
+              , difDirectory    = fsLit ""
+              }
+            , MetaUnnamed cuMeta $ MetaDICompileUnit
+              { dicuLanguage    = fsLit "DW_LANG_Haskell"
+              , dicuFile        = fileMeta
+              , dicuProducer    = fsLit "ghc"
+              , dicuIsOptimized = optLevel dflags > 0
+              , dicuSubprograms = MetaStruct []
+              }
+            , MetaNamed (fsLit "llvm.dbg.cu") [ cuMeta ]
+            , MetaUnnamed subprogramsMeta $ MetaStruct []
+            , MetaNamed (fsLit "llvm.module.flags")
+              [ dwarfVersionMeta
+              , debugInfoVersionMeta
+              ]
+            , MetaUnnamed dwarfVersionMeta $ MetaStruct
+              [ MetaVar $ LMLitVar $ LMIntLit 2 i32
+              , MetaStr $ fsLit "Dwarf Version"
+              , MetaVar $ LMLitVar $ LMIntLit 4 i32
+              ]
+            , MetaUnnamed debugInfoVersionMeta $ MetaStruct
+              [ MetaVar $ LMLitVar $ LMIntLit 2 i32
+              , MetaStr $ fsLit "Debug Info Version"
+              , MetaVar $ LMLitVar $ LMIntLit 3 i32
+              ]
+            ]
+
+
 llvmGroupLlvmGens :: ModLocation -> RawCmmGroup -> LlvmM ()
 llvmGroupLlvmGens location cmm = do
 
