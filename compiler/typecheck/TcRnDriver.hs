@@ -900,7 +900,7 @@ checkBootDeclM is_boot boot_thing real_thing
   = whenIsJust (checkBootDecl boot_thing real_thing) $ \ err ->
        -- Here we use the source span of the real thing since the boot_thing may
        -- have come from an interface file and therefore may not have a span
-       addErrAt (nameSrcSpan (getName real_thing))
+       addErrAt (nameSrcSpan (getName boot_thing))
                 (bootMisMatch is_boot err real_thing boot_thing)
 
 -- | Compares the two things for equivalence between boot-file and normal
