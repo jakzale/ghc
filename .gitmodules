@@ -1,120 +1,120 @@
 [submodule "libraries/binary"]
 	path = libraries/binary
-	url = ../packages/binary.git
+	url = https://github.com/ghc/packages-binary.git
 	ignore = untracked
 [submodule "libraries/bytestring"]
 	path = libraries/bytestring
-	url = ../packages/bytestring.git
+	url = https://github.com/ghc/packages-bytestring.git
 	ignore = untracked
 [submodule "libraries/Cabal"]
 	path = libraries/Cabal
-	url = ../packages/Cabal.git
+	url = https://github.com/ghc/packages-Cabal.git
 	ignore = untracked
 [submodule "libraries/containers"]
 	path = libraries/containers
-	url = ../packages/containers.git
+	url = https://github.com/ghc/packages-containers.git
 	ignore = untracked
 [submodule "libraries/haskeline"]
 	path = libraries/haskeline
-	url = git://github.com/bgamari/haskeline
+	url = git://github.com/bgamari/haskeline.git
 	ignore = untracked
 [submodule "libraries/pretty"]
 	path = libraries/pretty
-	url = ../packages/pretty.git
+	url = https://github.com/ghc/packages-pretty.git
 	ignore = untracked
 [submodule "libraries/terminfo"]
 	path = libraries/terminfo
-	url = git://github.com/bgamari/packages-terminfo
+	url = git://github.com/bgamari/packages-terminfo.git
 	ignore = untracked
 [submodule "libraries/transformers"]
 	path = libraries/transformers
-	url = ../packages/transformers.git
+	url = https://github.com/ghc/packages-transformers.git
 	ignore = untracked
 [submodule "libraries/xhtml"]
 	path = libraries/xhtml
-	url = ../packages/xhtml.git
+	url = https://github.com/ghc/packages-xhtml.git
 	ignore = untracked
 [submodule "libraries/Win32"]
 	path = libraries/Win32
-	url = ../packages/Win32.git
+	url = https://github.com/ghc/packages-Win32.git
 	ignore = untracked
 [submodule "libraries/primitive"]
 	path = libraries/primitive
-	url = ../packages/primitive.git
+	url = https://github.com/ghc/packages-primitive.git
 	ignore = untracked
 [submodule "libraries/vector"]
 	path = libraries/vector
-	url = ../packages/vector.git
+	url = https://github.com/ghc/packages-vector.git
 	ignore = untracked
 [submodule "libraries/time"]
 	path = libraries/time
-	url = ../packages/time.git
+	url = https://github.com/ghc/packages-time.git
 	ignore = untracked
 [submodule "libraries/random"]
 	path = libraries/random
-	url = ../packages/random.git
+	url = https://github.com/ghc/packages-random.git
 	ignore = untracked
 [submodule "libraries/array"]
 	path = libraries/array
-	url = git://github.com/bgamari/array
+	url = git://github.com/bgamari/array.git
 	ignore = none
 [submodule "libraries/deepseq"]
 	path = libraries/deepseq
-	url = git://github.com/bgamari/deepseq
+	url = git://github.com/bgamari/deepseq.git
 	ignore = none
 [submodule "libraries/directory"]
 	path = libraries/directory
-	url = git://github.com/bgamari/directory
+	url = git://github.com/bgamari/directory.git
 	ignore = none
 [submodule "libraries/filepath"]
 	path = libraries/filepath
-	url = git://github.com/bgamari/filepath
+	url = git://github.com/bgamari/filepath.git
 	ignore = none
 [submodule "libraries/hoopl"]
 	path = libraries/hoopl
-	url = git://github.com/bgamari/hoopl
+	url = git://github.com/bgamari/hoopl.git
 	ignore = none
 [submodule "libraries/hpc"]
 	path = libraries/hpc
-	url = git://github.com/bgamari/hpc
+	url = git://github.com/bgamari/hpc.git
 	ignore = none
 [submodule "libraries/process"]
 	path = libraries/process
-	url = git://github.com/bgamari/process
+	url = git://github.com/bgamari/process.git
 	ignore = none
 [submodule "libraries/unix"]
 	path = libraries/unix
-	url = git://github.com/bgamari/unix
+	url = git://github.com/bgamari/unix.git
 	ignore = none
 [submodule "libraries/parallel"]
 	path = libraries/parallel
-	url = git://github.com/bgamari/parallel
+	url = git://github.com/bgamari/parallel.git
 	ignore = none
 [submodule "libraries/stm"]
 	path = libraries/stm
-	url = git://github.com/bgamari/packages-stm
+	url = git://github.com/bgamari/packages-stm.git
 	ignore = none
 [submodule "libraries/dph"]
 	path = libraries/dph
-	url = ../packages/dph.git
+	url = https://github.com/ghc/packages-dph.git
 	ignore = none
 [submodule "utils/haddock"]
 	path = utils/haddock
-	url = git://github.com/bgamari/haddock
+	url = git://github.com/bgamari/haddock.git
 	ignore = none
 	branch = ghc-head
 [submodule "nofib"]
 	path = nofib
-	url = ../nofib.git
+	url = https://github.com/ghc/nofib.git
         ignore = untracked
 [submodule "utils/hsc2hs"]
 	path = utils/hsc2hs
-	url = ../hsc2hs.git
+	url = https://github.com/ghc/hsc2hs.git
 	ignore = none
 [submodule "libffi-tarballs"]
 	path = libffi-tarballs
-	url = ../libffi-tarballs.git
+	url = https://github.com/ghc/libffi-tarballs.git
 	ignore = none
 [submodule ".arc-linters/arcanist-external-json-linter"]
 	path = .arc-linters/arcanist-external-json-linter
-	url = ../arcanist-external-json-linter.git
+	url = https://github.com/bgamari/arcanist-external-json-linter.git
