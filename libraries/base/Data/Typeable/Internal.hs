@@ -153,9 +153,9 @@ rnfString (c:cs) = c `seq` rnfString cs
 -- | A concrete representation of a (monomorphic) type.
 -- 'TypeRep' supports reasonably efficient equality.
 data TypeRep (a :: k) where
-    TrTyCon :: !Fingerprint -> !TyCon -> TypeRep k -> TypeRep (a :: k)
+    TrTyCon :: {-# UNPACK #-} !Fingerprint -> !TyCon -> TypeRep k -> TypeRep (a :: k)
     TrApp   :: forall k1 k2 (a :: k1 -> k2) (b :: k1).
-               !Fingerprint
+               {-# UNPACK #-} !Fingerprint
             -> TypeRep (a :: k1 -> k2)
             -> TypeRep (b :: k1)
             -> TypeRep (a b)
@@ -335,6 +335,8 @@ typeRepXFingerprint (TypeRepX t) = typeRepFingerprint t
 
 ----------------- Showing TypeReps --------------------
 
+-- This follows roughly the precedence structure described in Note [Precedence
+-- in types].
 instance Show (TypeRep (a :: k)) where
     showsPrec = showTypeable
 

@@ -18,7 +18,7 @@ This is where we do all the grimy bindings' generation.
 module TcGenDeriv (
         BagDerivStuff, DerivStuff(..),
 
-        hasBuiltinDeriving,
+        hasStockDeriving,
         FFoldType(..), functorLikeTraverse,
         deepSubtypesContaining, foldDataConArgs,
         mkCoerceClassMethEqn,
@@ -102,20 +102,25 @@ data DerivStuff     -- Please add this auxiliary stuff
 *                                                                      *
 ************************************************************************
 
-Only certain blessed classes can be used in a deriving clause. These classes
-are listed below in the definition of hasBuiltinDeriving (with the exception
+Only certain blessed classes can be used in a deriving clause (without the
+assistance of GeneralizedNewtypeDeriving or DeriveAnyClass). These classes
+are listed below in the definition of hasStockDeriving (with the exception
 of Generic and Generic1, which are handled separately in TcGenGenerics).
 
-A class might be able to be used in a deriving clause if it -XDeriveAnyClass
-is willing to support it. The canDeriveAnyClass function checks if this is
-the case.
+A class might be able to be used in a deriving clause if -XDeriveAnyClass
+is willing to support it. The canDeriveAnyClass function in TcDeriv checks
+if this is the case.
 -}
 
-hasBuiltinDeriving :: Class
+-- NB: The classes listed below should be in sync with the ones listed in
+-- the definition of sideConditions in TcDeriv (except for Generic(1), as
+-- noted above). If you add a new class to hasStockDeriving, make sure to
+-- update sideConditions as well!
+hasStockDeriving :: Class
                    -> Maybe (SrcSpan
                              -> TyCon
                              -> TcM (LHsBinds RdrName, BagDerivStuff))
-hasBuiltinDeriving clas
+hasStockDeriving clas
   = assocMaybe gen_list (getUnique clas)
   where
     gen_list :: [(Unique, SrcSpan -> TyCon -> TcM (LHsBinds RdrName, BagDerivStuff))]
@@ -576,7 +581,7 @@ unliftedCompare lt_op eq_op a_expr b_expr lt eq gt
                         -- mean more tests (dynamically)
         nlHsIf (ascribeBool $ genPrimOpApp a_expr eq_op b_expr) eq gt
   where
-    ascribeBool e = nlExprWithTySig e (toLHsSigWcType boolTy)
+    ascribeBool e = nlExprWithTySig e boolTy
 
 nlConWildPat :: DataCon -> LPat RdrName
 -- The pattern (K {})
@@ -2213,31 +2218,30 @@ coercing from.  So from, say,
   newtype T x = MkT <rep-ty>
 
   instance C a <rep-ty> => C a (T x) where
-    op = (coerce
-             (op :: a -> [<rep-ty>] -> Int)
-         ) :: a -> [T x] -> Int
+    op = coerce @ (a -> [<rep-ty>] -> Int)
+                @ (a -> [T x]      -> Int)
+                op
 
-Notice that we give the 'coerce' call two type signatures: one to
-fix the type of the inner call, and one for the expected type.  The outer
-type signature ought to be redundant, but may improve error messages.
-The inner one is essential to fix the type at which 'op' is called.
+Notice that we give the 'coerce' two explicitly-visible type arguments
+to say how it should be instantiated.  Recall
+
+  coerce :: Coeercible a b => a -> b
+
+By giving it explicit type arguments we deal with the case where
+'op' has a higher rank type, and so we must instantiae 'coerce' with
+a polytype.  E.g.
+   class C a where op :: forall b. a -> b -> b
+   newtype T x = MkT <rep-ty>
+   instance C <rep-ty> => C (T x) where
+     op = coerce @ (forall b. <rep-ty> -> b -> b)
+                 @ (forall b. T x -> b -> b)
+                op
+
+The type checker checks this code, and it currently requires
+-XImpredicativeTypes to permit that polymorphic type instantiation,
+so ew have to switch that flag on locally in TcDeriv.genInst.
 
 See #8503 for more discussion.
-
-Here's a wrinkle. Supppose 'op' is locally overloaded:
-
-  class C2 b where
-    op2 :: forall a. Eq a => a -> [b] -> Int
-
-Then we could do exactly as above, but it's a bit redundant to
-instantiate op, then re-generalise with the inner signature.
-(The inner sig is only there to fix the type at which 'op' is
-called.)  So we just instantiate the signature, and add
-
-  instance C2 <rep-ty> => C2 (T x) where
-    op2 = (coerce
-             (op2 :: a -> [<rep-ty>] -> Int)
-          ) :: forall a. Eq a => a -> [T x] -> Int
 -}
 
 gen_Newtype_binds :: SrcSpan
@@ -2260,19 +2264,21 @@ gen_Newtype_binds loc cls inst_tvs cls_tys rhs_ty
       where
         Pair from_ty to_ty = mkCoerceClassMethEqn cls inst_tvs cls_tys rhs_ty meth_id
 
-        -- See "wrinkle" in Note [Newtype-deriving instances]
-        (_, _, from_ty') = tcSplitSigmaTy from_ty
-
         meth_RDR = getRdrName meth_id
 
-        rhs_expr = ( nlHsVar coerce_RDR
-                      `nlHsApp`
-                    (nlHsVar meth_RDR `nlExprWithTySig` toLHsSigWcType from_ty'))
-                  `nlExprWithTySig` toLHsSigWcType to_ty
+        rhs_expr = nlHsVar coerce_RDR `nlHsAppType` from_ty
+                                      `nlHsAppType` to_ty
+                                      `nlHsApp`     nlHsVar meth_RDR
 
+nlHsAppType :: LHsExpr RdrName -> Type -> LHsExpr RdrName
+nlHsAppType e s = noLoc (e `HsAppType` hs_ty)
+  where
+    hs_ty = mkHsWildCardBndrs (typeToLHsType s)
 
-nlExprWithTySig :: LHsExpr RdrName -> LHsSigWcType RdrName -> LHsExpr RdrName
-nlExprWithTySig e s = noLoc (ExprWithTySig e s)
+nlExprWithTySig :: LHsExpr RdrName -> Type -> LHsExpr RdrName
+nlExprWithTySig e s = noLoc (e `ExprWithTySig` hs_ty)
+  where
+    hs_ty = mkLHsSigWcType (typeToLHsType s)
 
 mkCoerceClassMethEqn :: Class   -- the class being derived
                      -> [TyVar] -- the tvs in the instance head

@@ -3383,7 +3383,7 @@ example), then we apply the function ``f`` directly to it. If a type is
 encountered that is not syntactically equivalent to the last type parameter
 *but does mention* the last type parameter somewhere in it, then a recursive
 call to ``fmap`` is made. If a type is found which doesn't mention the last
-type paramter at all, then it is left alone.
+type parameter at all, then it is left alone.
 
 The second of those cases, in which a type is unequal to the type parameter but
 does contain the type parameter, can be surprisingly tricky. For example, the
@@ -3955,10 +3955,10 @@ usually have one "main" parameter for which deriving new instances is
 most interesting.
 
 Lastly, all of this applies only for classes other than ``Read``,
-``Show``, ``Typeable``, and ``Data``, for which the built-in derivation
+``Show``, ``Typeable``, and ``Data``, for which the stock derivation
 applies (section 4.3.3. of the Haskell Report). (For the standard
 classes ``Eq``, ``Ord``, ``Ix``, and ``Bounded`` it is immaterial
-whether the standard method is used or the one described here.)
+whether the stock method is used or the one described here.)
 
 .. _derive-any-class:
 
@@ -4063,6 +4063,64 @@ Note the following details
 
   and then the normal rules for filling in associated types from the
   default will apply, making ``Size Bar`` equal to ``Int``.
+
+.. _deriving-strategies:
+
+Deriving strategies
+-------------------
+
+In most scenarios, every ``deriving`` statement generates a typeclass instance
+in an unambiguous fashion. There is a corner case, however, where
+simultaneously enabling both the :ghc-flag:`-XGeneralizedNewtypeDeriving` and
+:ghc-flag:`-XDeriveAnyClass` extensions can make deriving become ambiguous.
+Consider the following example ::
+
+    {-# LANGUAGE DeriveAnyClass, GeneralizedNewtypeDeriving #-}
+    newtype Foo = MkFoo Bar deriving C
+
+One could either pick the ``DeriveAnyClass`` approach to deriving ``C`` or the
+``GeneralizedNewtypeDeriving`` approach to deriving ``C``, both of which would
+be equally as valid. GHC defaults to favoring ``DeriveAnyClass`` in such a
+dispute, but this is not a satisfying solution, since that leaves users unable
+to use both language extensions in a single module.
+
+To make this more robust, GHC has a notion of deriving strategies, which allow
+the user to explicitly request which approach to use when deriving an instance.
+To enable this feature, one must enable the :ghc-flag:`-XDerivingStrategies`
+language extension. A deriving strategy can be specified in a deriving
+clause ::
+
+    newtype Foo = MkFoo Bar
+      deriving newtype C
+
+Or in a standalone deriving declaration ::
+
+    deriving anyclass instance C Foo
+
+:ghc-flag:`-XDerivingStrategies` also allows the use of multiple deriving
+clauses per data declaration so that a user can derive some instance with
+one deriving strategy and other instances with another deriving strategy.
+For example ::
+
+    newtype Baz = Baz Quux
+      deriving          (Eq, Ord)
+      deriving stock    (Read, Show)
+      deriving newtype  (Num, Floating)
+      deriving anyclass C
+
+Currently, the deriving strategies are:
+
+- ``stock``: Have GHC implement a "standard" instance for a data type,
+  if possible (e.g., ``Eq``, ``Ord``, ``Generic``, ``Data``, ``Functor``, etc.)
+
+- ``anyclass``: Use :ghc-flag:`-XDeriveAnyClass`
+
+- ``newtype``: Use :ghc-flag:`-XGeneralizedNewtypeDeriving`
+
+If an explicit deriving strategy is not given, GHC has an algorithm for
+determining how it will actually derive an instance. For brevity, the algorithm
+is omitted here. You can read the full algorithm at
+:ghc-wiki:`Wiki page <DerivingStrategies>`.
 
 .. _pattern-synonyms:
 
@@ -4199,7 +4257,7 @@ constructors. The syntax for doing this is as follows:
 
 ::
 
-      pattern Point :: (Int, Int)
+      pattern Point :: Int -> Int -> (Int, Int)
       pattern Point{x, y} = (x, y)
 
 The idea is that we can then use ``Point`` just as if we had defined a new
@@ -4229,7 +4287,11 @@ For a unidirectional record pattern synonym we define record selectors but do
 not allow record updates or construction.
 
 The syntax and semantics of pattern synonyms are elaborated in the
-following subsections. See the :ghc-wiki:`Wiki page <PatternSynonyms>` for more
+following subsections.
+There are also lots more details in the `paper
+<https://www.microsoft.com/en-us/research/wp-content/uploads/2016/08/pattern-synonyms-Haskell16.pdf>`_.
+
+See the :ghc-wiki:`Wiki page <PatternSynonyms>` for more
 details.
 
 Syntax and scoping of pattern synonyms
@@ -12065,6 +12127,8 @@ behaviour:
 -  Unlike ``INLINE``, it is OK to use an ``INLINABLE`` pragma on a
    recursive function. The principal reason do to so to allow later use
    of ``SPECIALISE``
+
+The alternative spelling ``INLINEABLE`` is also accepted by GHC.
 
 .. _noinline-pragma:
 

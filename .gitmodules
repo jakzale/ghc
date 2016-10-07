@@ -16,7 +16,7 @@
 	ignore = untracked
 [submodule "libraries/haskeline"]
 	path = libraries/haskeline
-	url = git://github.com/bgamari/haskeline.git
+	url = git://github.com/bgamari/haskeline
 	ignore = untracked
 [submodule "libraries/pretty"]
 	path = libraries/pretty
@@ -24,7 +24,7 @@
 	ignore = untracked
 [submodule "libraries/terminfo"]
 	path = libraries/terminfo
-	url = git://github.com/bgamari/packages-terminfo.git
+	url = git://github.com/bgamari/packages-terminfo
 	ignore = untracked
 [submodule "libraries/transformers"]
 	path = libraries/transformers
@@ -56,43 +56,43 @@
 	ignore = untracked
 [submodule "libraries/array"]
 	path = libraries/array
-	url = git://github.com/bgamari/array.git
+	url = git://github.com/bgamari/array
 	ignore = none
 [submodule "libraries/deepseq"]
 	path = libraries/deepseq
-	url = git://github.com/bgamari/deepseq.git
+	url = git://github.com/bgamari/deepseq
 	ignore = none
 [submodule "libraries/directory"]
 	path = libraries/directory
-	url = git://github.com/bgamari/directory.git
+	url = git://github.com/bgamari/directory
 	ignore = none
 [submodule "libraries/filepath"]
 	path = libraries/filepath
-	url = git://github.com/bgamari/filepath.git
+	url = git://github.com/bgamari/filepath
 	ignore = none
 [submodule "libraries/hoopl"]
 	path = libraries/hoopl
-	url = git://github.com/bgamari/hoopl.git
+	url = git://github.com/bgamari/hoopl
 	ignore = none
 [submodule "libraries/hpc"]
 	path = libraries/hpc
-	url = git://github.com/bgamari/hpc.git
+	url = git://github.com/bgamari/hpc
 	ignore = none
 [submodule "libraries/process"]
 	path = libraries/process
-	url = git://github.com/bgamari/process.git
+	url = git://github.com/bgamari/process
 	ignore = none
 [submodule "libraries/unix"]
 	path = libraries/unix
-	url = git://github.com/bgamari/unix.git
+	url = git://github.com/bgamari/unix
 	ignore = none
 [submodule "libraries/parallel"]
 	path = libraries/parallel
-	url = git://github.com/bgamari/parallel.git
+	url = git://github.com/bgamari/parallel
 	ignore = none
 [submodule "libraries/stm"]
 	path = libraries/stm
-	url = git://github.com/bgamari/packages-stm.git
+	url = git://github.com/bgamari/packages-stm
 	ignore = none
 [submodule "libraries/dph"]
 	path = libraries/dph
@@ -100,7 +100,7 @@
 	ignore = none
 [submodule "utils/haddock"]
 	path = utils/haddock
-	url = git://github.com/bgamari/haddock.git
+	url = git://github.com/bgamari/haddock
 	ignore = none
 	branch = ghc-head
 [submodule "nofib"]

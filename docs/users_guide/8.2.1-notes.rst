@@ -38,6 +38,10 @@ Compiler
   syntax can be used, in addition to a new form for specifying the cost centre
   name. See :ref:`scc-pragma` for examples.
 
+- It is now possible to explicitly pick a strategy to use when deriving a
+  class instance using the :ghc-flag:`-XDerivingStrategies` language extension
+  (see :ref:`deriving-strategies`).
+
 GHCi
 ~~~~
 
@@ -66,6 +70,12 @@ Runtime system
 - The :ref:`heap profiler <prof-heap>` can now emit heap census data to the GHC
   event log, allowing heap profiles to be correlated with other tracing events
   (see :ghc-ticket:`11094`).
+
+- Added NUMA support to Windows.
+
+- Added processor group support for Windows. This allows the runtime to allocate
+  threads to all cores in systems which have multiple processor groups.
+  (e.g. > 64 cores, see :ghc-ticket:`11054`)
 
 Build system
 ~~~~~~~~~~~~
